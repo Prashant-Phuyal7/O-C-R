@@ -1,0 +1,4 @@
+2024-07-16 11:08:03,310 - tensorflow - WARNING - From C:\Users\ronal\AppData\Roaming\Python\Python312\site-packages\tf2onnx\tf_loader.py:72: The name tf.train.import_meta_graph is deprecated. Please use tf.compat.v1.train.import_meta_graph instead.
+
+2024-07-16 11:08:08,409 - tensorflow - WARNING - From C:\Users\ronal\AppData\Roaming\Python\Python312\site-packages\keras\src\legacy\backend.py:666: The name tf.nn.ctc_loss is deprecated. Please use tf.compat.v1.nn.ctc_loss instead.
+

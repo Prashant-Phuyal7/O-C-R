@@ -1,0 +1,2 @@
+2024-07-15 22:40:42,473 - tensorflow - WARNING - From C:\Users\ronal\AppData\Roaming\Python\Python312\site-packages\tf2onnx\tf_loader.py:72: The name tf.train.import_meta_graph is deprecated. Please use tf.compat.v1.train.import_meta_graph instead.
+
