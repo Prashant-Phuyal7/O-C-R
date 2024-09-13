@@ -1,0 +1,48 @@
+#--- words.txt ---------------------------------------------------------------#
+# iam database word information
+# format: word_id segmentation graylevel num_components x y w h tag transcription
+#
+A-006 ok 143 1 23 47 4 4 NN ?
+any-005 ok 154 2 138 70 9 9 NN ?
+at-004 ok 151 3 0 42 66 17 NN ?
+aua-006 ok 154 1 190 35 1 1 NN ?
+bached-006 ok 153 2 17 30 19 13 NN ?
+be-007 ok 154 4 26 49 87 14 NN ?
+by-006 ok 155 2 86 61 13 8 NN ?
+ctoe-004 ok 153 3 129 41 37 37 NN ?
+cuael-005 ok 156 1 249 54 3 2 NN ?
+down-005 ok 151 1 216 47 5 1 NN ?
+Exchange-007 ok 160 1 355 47 4 7 NN ?
+Foot-005 ok 154 1 70 36 30 17 NN ?
+for-004 ok 160 1 164 35 1 2 NN ?
+from-003 ok 156 1 0 68 3 4 NN ?
+Go its hell-006 ok 154 3 328 63 54 10 NN ?
+Griffiths-004 ok 158 1 116 49 15 9 NN ?
+has-004 ok 164 1 131 53 3 4 NN ?
+he-006 ok 152 1 122 48 4 2 NN ?
+i u-003 ok 155 1 63 51 4 2 NN ?
+is-004 ok 154 3 17 57 48 13 NN ?
+l-004 ok 149 1 0 32 1 2 NN ?
+Labour-006 ok 163 2 261 38 41 27 NN ?
+Life-004 ok 155 2 75 44 99 19 NN ?
+LO-004 ok 147 2 53 37 17 13 NN ?
+M P s-005 ok 153 1 171 52 6 7 NN ?
+made-007 ok 153 1 266 45 7 1 NN ?
+Mancheste-007 ok 159 1 0 58 1 1 NN ?
+meeting-005 ok 157 2 327 89 12 7 NN ?
+more-005 ok 152 1 203 40 5 2 NN ?
+MOVE-003 ok 150 1 0 47 1 1 NN ?
+Mr . Mi-004 ok 133 1 5 7 4 3 NN ?
+Mr. W-003 ok 161 1 0 56 1 1 NN ?
+Mr-005 ok 154 1 122 58 4 3 NN ?
+nominating-005 ok 155 1 433 95 8 5 NN ?
+o-003 ok 117 1 4 7 6 6 NN ?
+on-004 ok 154 1 0 26 7 6 NN ?
+Peeju-005 ok 160 2 94 49 19 10 NN ?
+put-005 ok 154 1 0 62 7 9 NN ?
+resolution-007 ok 156 1 343 53 1 1 NN ?
+subject-007 ok 160 3 154 62 34 24 NN ?
+t he-006 ok 157 1 163 59 4 2 NN ?
+to-004 ok 151 2 45 39 27 15 NN ?
+tommorow-006 ok 154 2 406 38 25 16 NN ?
+u p-004 ok 158 1 10 30 1 2 NN ?

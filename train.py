@@ -8,7 +8,6 @@ from mltu.preprocessors import ImageReader
 from mltu.transformers import ImageResizer, LabelIndexer, LabelPadding, ImageShowCV2
 from mltu.augmentors import RandomBrightness, RandomRotate, RandomErodeDilate, RandomSharpen
 from mltu.annotations.images import CVImage
-
 from mltu.tensorflow.dataProvider import DataProvider
 from mltu.tensorflow.losses import CTCloss
 from mltu.tensorflow.callbacks import Model2onnx, TrainLogger
@@ -20,94 +19,155 @@ from configs import ModelConfigs
 import os
 import tarfile
 import cv2
+import glob
+import numpy as np
 from tqdm import tqdm
 from urllib.request import urlopen
 from io import BytesIO
 from zipfile import ZipFile
 
+dataset_path = r'Datasets\IAM_Words\words\a01'
+grayscale_folder_path = r'grey_scaledimages'
+os.makedirs(grayscale_folder_path, exist_ok=True)
+word_filepath = r'Datasets'
+output_file = os.path.join(word_filepath, "words.txt")
+os.makedirs(word_filepath, exist_ok=True)
 
-dataset_path = 'Datasets/IAM_Words'
-grayscale_dataset_path = os.path.join("Datasets", "IAM_Words_Grayscale")
 
-os.makedirs(grayscale_dataset_path, exist_ok=True)
-output_file_path = os.path.join("Datasets", "IAM_Words", "words.txt")
+image_files = glob.glob(os.path.join(dataset_path, '*.png'))  
+if not image_files:
+    raise FileNotFoundError(f"No image files found in the dataset path: {dataset_path}")
 
-lines = []
+with open(output_file, 'w') as f:
+    f.write("#--- words.txt ---------------------------------------------------------------#\n")
+    f.write("# iam database word information\n")
+    f.write("# format: word_id segmentation graylevel num_components x y w h tag transcription\n")
+    f.write("#\n")
 
-# Traverse the dataset directory
-for root, dirs, files in os.walk(dataset_path):
-    for file in tqdm(files):
-        if file.endswith(".png"):  # Check for PNG image files
-            # Construct the full path of the image file
-            image_path = os.path.join(root, file)
+    # Processing original images and saving grayscale versions
+    for image_file in tqdm(image_files, desc="Processing original images"):
+        grayscale_image = cv2.imread(image_file, cv2.IMREAD_GRAYSCALE)
+
+        if grayscale_image is None:
+            print(f"Error reading file: {image_file}")
+            continue
+
+        # Save the grayscale image to the specified folder
+        grayscale_image_path = os.path.join(grayscale_folder_path, os.path.basename(image_file))
+        if not cv2.imwrite(grayscale_image_path, grayscale_image):
+            print(f"Error saving file: {grayscale_image_path}")
+            continue
+
+    # saving all grayscale images and processing them from the grayscale folder
+    grayscale_image_files = glob.glob(os.path.join(grayscale_folder_path, '*.png'))
+
+    if not grayscale_image_files:
+        raise FileNotFoundError(f"No grayscale images found in the specified directory: {grayscale_folder_path}")
+
+    for grayscale_image_path in tqdm(grayscale_image_files, desc="Processing grayscale images"):
+        grayscale_image = cv2.imread(grayscale_image_path, cv2.IMREAD_GRAYSCALE)
+
+        if grayscale_image is None:
+            print(f"Error reading file: {grayscale_image_path}")
+            continue
+
+        # Applying Otsu's thresholding to find a suitable threshold value
+        graylevel_threshold, binary_image = cv2.threshold(grayscale_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+        print(f"Type of graylevel_threshold: {type(graylevel_threshold)}")
+        print(f"Value of graylevel_threshold: {graylevel_threshold}")
+
+        graylevel_threshold = int(graylevel_threshold)
+
+        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(binary_image)
+
+        highest_components = 0
+        highest_components_details = ""
+
+        for i in range(1, num_labels):
+            x, y, width, height, area = stats[i]
+
+            word_image = binary_image[y:y+height, x:x+width]
+            num_word_components, _, _, _ = cv2.connectedComponentsWithStats(word_image)
+
+            word_id = f"{os.path.splitext(os.path.basename(grayscale_image_path))[0]}-{i:03d}"
+            segmentation_result = "ok"
+            tag = "NN"
+            transcription = "?"
+
+           
+            print(f"Processed word: {word_id} with {num_word_components - 1} components")
+            num_components = num_word_components - 1  
+
             
-            # Extract the identifier from the folder structure
-            path_parts = image_path.split(os.sep)  # Split path into components
-            if len(path_parts) < 3:
-                print(f"Skipping invalid path: {image_path}")
-                continue
-
-            folder1 = path_parts[-3]  # Get the first folder part (e.g., 'a01')
-            folder2 = path_parts[-2]  # Get the second folder part (e.g., 'a01-000u')
-            file_id = os.path.splitext(file)[0]  # Extract the file name without extension (e.g., 'a01-000u-00-00')
-
-            # Correct identifier format
-            identifier = f"{folder1}-{file_id}"
-
-            # Extract the actual data needed from dataset annotations
-            # Replace these placeholders with actual data extraction logic
-            gray_level = 154  # Example gray level; replace with actual data
-            num_components = 1  # Number of components; replace with actual data
-            bounding_box = "408 768 27 51"  # Replace with actual bounding box data (x y w h)
-            grammatical_tag = "AT"  # Replace with actual tag
-            transcription = "A"  # Replace with actual transcription
-
-            # Construct the line for words.txt
-            line = f"{identifier} ok {gray_level} {num_components} {bounding_box} {grammatical_tag} {transcription}\n"
-            
-            # Add the line to the list
-            lines.append(line)
-
-# Write all the collected lines to the words.txt file
-with open(output_file_path, "w") as f:
-    f.writelines(lines)
-
-print(f"'words.txt' has been created successfully at: {output_file_path}")
+        if num_components > highest_components:
+            highest_components = num_components
+            highest_components_details = (
+                f"{word_id} {segmentation_result} {graylevel_threshold} {highest_components} "
+                f"{x} {y} {width} {height} {tag} {transcription}\n"
+            )
+            print(f"New highest: {word_id} with {highest_components} components")
+        if highest_components_details:
+            f.write(highest_components_details)
+            print(f"Wrote highest component details: {highest_components_details.strip()}")
 
 
-if not os.path.exists(dataset_path):
-    file = tarfile.open(os.path.join(dataset_path, "words.tgz"))
-    file.extractall(os.path.join(dataset_path, "words"))
 
+
+
+
+# Initialize dataset variables
 dataset, vocab, max_len = [], set(), 0
 
-words = open(os.path.join(dataset_path, "words.txt"), "r").readlines()
+# Path to the words.txt file
+words_file_path = os.path.join(word_filepath, "words.txt")
+words = open(words_file_path, "r").readlines()
 
-for line in tqdm(words):
+# List to keep track of missing files
+missing_files = []
+
+# Processing lines from words.txt
+for line in tqdm(words, desc="Processing words"):
+    # Skip comment lines
     if line.startswith("#"):
         continue
 
-    line_split = line.split(" ")
+    # Split the line by spaces to extract components
+    line_split = line.strip().split(" ")
+
+    # Skip lines marked with 'err'
     if line_split[1] == "err":
         continue
 
-    folder1 = line_split[0][:3]
-    file_name = line_split[0] + ".png"
-    label = line_split[-1].rstrip("\n")
+    # Extract folder and filename information
+    folder1 = line_split[0][:3]  # Extracts the folder name, e.g., 'a01'
+    file_name = line_split[0] + ".png"  # Constructs the image file name, e.g., 'a01-000u-00.png'
+    label = line_split[-1]  
 
-    rel_path = os.path.join(dataset_path, "words", folder1, file_name)
-    if not os.path.exists(rel_path):
-        print(f"File not found: {rel_path}")
+    # Construct the absolute path to the image file
+    rel_path = os.path.join(dataset_path, "..", folder1, file_name)  # Considering the base path is 'words\a01'
+    abs_path = os.path.abspath(rel_path)
+
+    # Check if the file exists at the constructed path
+    if not os.path.exists(abs_path):
+        print(f"File not found: {abs_path}")
+        missing_files.append(abs_path)  # Log missing file
         continue
 
-    original_path = os.path.join(dataset_path, "words", folder1, file_name)
-    if not os.path.exists(original_path):
-        print(f"File not found: {original_path}")
-        continue
-
-    dataset.append([rel_path, label])
+    # Append the path and label to the dataset list
+    dataset.append([abs_path, label])
     vocab.update(list(label))
     max_len = max(max_len, len(label))
+
+print("Dataset processing complete.")
+
+# Save missing files to a log file for debugging
+if missing_files:
+    with open("missing_files_log.txt", "w") as log_file:
+        for missing_file in missing_files:
+            log_file.write(f"{missing_file}\n")
+    print(f"{len(missing_files)} files were not found. Details are saved in 'missing_files_log.txt'.")
+
 
 
 
@@ -129,36 +189,36 @@ data_provider = DataProvider(
         ImageResizer(configs.width, configs.height, keep_aspect_ratio=False),
         LabelIndexer(configs.vocab),
         LabelPadding(max_word_length=configs.max_text_length, padding_value=len(configs.vocab)),
-        ],
+    ],
 )
 
 # Split the dataset into training and validation sets
-train_data_provider, val_data_provider = data_provider.split(split = 0.9)
+train_data_provider, val_data_provider = data_provider.split(split=0.9)
 
-# Augment training data with random brightness, rotation and erode/dilate
+# Augment training data with random brightness, rotation, and erode/dilate
 train_data_provider.augmentors = [
-    RandomBrightness(), 
+    RandomBrightness(),
     RandomErodeDilate(),
     RandomSharpen(),
-    RandomRotate(angle=10), 
-    ]
+    RandomRotate(angle=10),
+]
 
 # Creating TensorFlow model architecture
 model = train_model(
-    input_dim = (configs.height, configs.width, 3),
-    output_dim = len(configs.vocab),
+    input_dim=(configs.height, configs.width, 3),
+    output_dim=len(configs.vocab),
 )
 
 # Compile the model and print summary
 model.compile(
-    optimizer=tf.keras.optimizers.Adam(learning_rate=configs.learning_rate), 
-    loss=CTCloss(), 
+    optimizer=tf.keras.optimizers.Adam(learning_rate=configs.learning_rate),
+    loss=CTCloss(),
     metrics=[CWERMetric(padding_token=len(configs.vocab))],
 )
 model.summary(line_length=110)
 
 # Define callbacks
-configs.model_path=configs.model_path+".keras"
+configs.model_path = configs.model_path + ".keras"
 earlystopper = EarlyStopping(monitor="val_CER", patience=20, verbose=1)
 checkpoint = ModelCheckpoint(f"{configs.model_path}", monitor="val_CER", verbose=1, save_best_only=True, mode="min")
 trainLogger = TrainLogger(configs.model_path)
@@ -175,6 +235,7 @@ model.fit(
     # workers=configs.train_workers
 )
 
-# Save training and validation datasets as csv files
+
+# Save training and validation datasets as CSV files
 train_data_provider.to_csv(os.path.join(configs.model_path, "train.csv"))
 val_data_provider.to_csv(os.path.join(configs.model_path, "val.csv"))
