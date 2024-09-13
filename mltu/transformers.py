@@ -197,45 +197,6 @@ class ImageNormalizer:
         return img, annotation
 
 
-class SpectrogramPadding(Transformer):
-    """Pad spectrogram to max_spectrogram_length
-    
-    Attributes:
-        padding_value (int): Value to pad
-        max_spectrogram_length (int): Maximum length of spectrogram. Must be specified if use_on_batch is False. Default: None
-        use_on_batch (bool): Whether to use on batch. Default: False
-    """
-    def __init__(
-        self, 
-        padding_value: int,
-        max_spectrogram_length: int = None, 
-        use_on_batch: bool = False
-        ) -> None:
-        self.max_spectrogram_length = max_spectrogram_length
-        self.padding_value = padding_value
-        self.use_on_batch = use_on_batch
-
-        if not use_on_batch and max_spectrogram_length is None:
-            raise ValueError("max_spectrogram_length must be specified if use_on_batch is False")
-
-    def __call__(self, spectrogram: np.ndarray, label: np.ndarray):
-        if self.use_on_batch:
-            max_len = max([len(a) for a in spectrogram])
-            padded_spectrograms = []
-            for spec in spectrogram:
-                padded_spectrogram = np.pad(spec, ((0, max_len - spec.shape[0]), (0,0)), mode="constant", constant_values=self.padding_value)
-                padded_spectrograms.append(padded_spectrogram)
-
-            padded_spectrograms = np.array(padded_spectrograms)
-            label = np.array(label)
-
-            return padded_spectrograms, label
-
-        padded_spectrogram = np.pad(spectrogram, ((0, self.max_spectrogram_length - spectrogram.shape[0]),(0,0)), mode="constant", constant_values=self.padding_value)
-
-        return padded_spectrogram, label
-
-
 class ImageShowCV2(Transformer):
     """Show image for visual inspection
     """
